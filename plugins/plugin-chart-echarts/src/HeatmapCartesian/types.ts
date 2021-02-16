@@ -16,15 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
-export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
-export { default as EchartsPieChartPlugin } from './Pie';
-export { default as EchartsHeatmapCartesianChartPlugin } from './HeatmapCartesian';
+import { QueryFormData } from '@superset-ui/core';
+import { PostProcessingBoxplot } from '@superset-ui/core/lib/query/types/PostProcessing';
 
-/**
- * Note: this file exports the default export from EchartsTimeseries.tsx.
- * If you want to export multiple visualization modules, you will need to
- * either add additional plugin folders (similar in structure to ./plugin)
- * OR export multiple instances of `ChartPlugin` extensions in ./plugin/index.ts
- * which in turn load exports from EchartsTimeseries.tsx
- */
+export type BoxPlotQueryFormData = QueryFormData & {
+  numberFormat?: string;
+  whiskerOptions?: BoxPlotFormDataWhiskerOptions;
+  xTickLayout?: BoxPlotFormXTickLayout;
+};
+
+export type BoxPlotFormDataWhiskerOptions =
+  | 'Tukey'
+  | 'Min/max (no outliers)'
+  | '2/98 percentiles'
+  | '9/91 percentiles';
+
+export type BoxPlotFormXTickLayout = '45°' | '90°' | 'auto' | 'flat' | 'staggered';
+
+export type BoxPlotQueryObjectWhiskerType = PostProcessingBoxplot['options']['whisker_type'];

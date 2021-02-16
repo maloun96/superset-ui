@@ -48,6 +48,7 @@ export default function transformProps(chartProps) {
     maxZoom: DEFAULT_MAX_ZOOM,
     radius: clusteringRadius,
   };
+  console.info('hasCustomMetric', hasCustomMetric);
   if (hasCustomMetric) {
     opts.initial = () => ({
       sum: 0,
