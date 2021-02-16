@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
@@ -35,7 +34,6 @@ export default class EchartsHeatmapCartesianChartPlugin extends ChartPlugin {
    */
   constructor() {
     super({
-      buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsHeatmapCartesian'),
       metadata: new ChartMetadata({

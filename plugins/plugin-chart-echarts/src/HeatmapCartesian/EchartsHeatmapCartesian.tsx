@@ -21,6 +21,5 @@ import { EchartsProps } from '../types';
 import Echart from '../components/Echart';
 
 export default function EchartsHeatmapCartesian({ height, width, echartOptions }: EchartsProps) {
-  return null;
   return <Echart height={height} width={width} echartOptions={echartOptions} />;
 }
