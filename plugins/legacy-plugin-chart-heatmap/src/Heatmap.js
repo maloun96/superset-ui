@@ -25,7 +25,6 @@ import { getNumberFormatter, NumberFormats, getSequentialSchemeRegistry } from '
 
 import './vendor/d3tip.css';
 import './Heatmap.css';
-import { elementsAreOverlapping } from './utils';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -64,6 +63,15 @@ function cmp(a, b) {
   return a > b ? 1 : -1;
 }
 
+const DEFAULT_PROPERTIES = {
+  minChartWidth: 80,
+  minChartHeight: 80,
+  marginLeft: 35,
+  marginBottom: 35,
+  marginTop: 10,
+  marginRight: 10,
+};
+
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
 function Heatmap(element, props) {
@@ -90,8 +98,15 @@ function Heatmap(element, props) {
     yAxisBounds,
   } = props;
 
-  const { records, extents } = data;
+  const { extents } = data;
+  const records = data.records.map(r => {
+    if (r.x === 'start your own business') {
+      return { ...r, x: 'Example of long x label: Lorem Ipsum Dolor Sit test 12 123' };
+    }
 
+    return r;
+  });
+  console.log({ extents, records });
   const margin = {
     top: 10,
     right: 10,
@@ -113,7 +128,6 @@ function Heatmap(element, props) {
     let longestY = 1;
 
     records.forEach(datum => {
-      console.log(datum.y);
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       const w = context.measureText(datum.y).width;
@@ -125,7 +139,6 @@ function Heatmap(element, props) {
       longestYWidth = Math.max(longestYWidth, Math.ceil(h));
     });
 
-    // console.log({ hmWidth, hmHeight, longestX, longestY });
     if (leftMargin === 'auto') {
       margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
     } else {
@@ -181,10 +194,16 @@ function Heatmap(element, props) {
   let hmWidth = width - (margin.left + margin.right);
   let hmHeight = height - (margin.bottom + margin.top);
 
-  if (hmWidth < 80) {
-    margin.left = Math.ceil(Math.max(35, pixelsPerCharY * 1));
+  if (hmWidth < DEFAULT_PROPERTIES.minChartWidth) {
+    margin.left = leftMargin === 'auto' ? DEFAULT_PROPERTIES.marginLeft : leftMargin;
     hmWidth = width - (margin.left + margin.right);
     showY = false;
+  }
+
+  if (hmHeight < DEFAULT_PROPERTIES.minChartHeight) {
+    margin.bottom = bottomMargin === 'auto' ? DEFAULT_PROPERTIES.marginBottom : bottomMargin;
+    hmHeight = height - (margin.bottom + margin.top);
+    showX = false;
   }
 
   const fp = getNumberFormatter(NumberFormats.PERCENT);
@@ -308,43 +327,35 @@ function Heatmap(element, props) {
 
   rect.call(tip);
 
-  const xAxis = d3.svg
-    .axis()
-    .scale(xRbScale)
-    .outerTickSize(0)
-    .tickValues(xRbScale.domain().filter((d, i) => !(i % xScaleInterval)))
-    .orient('bottom');
+  if (showX) {
+    const xAxis = d3.svg
+      .axis()
+      .scale(xRbScale)
+      .outerTickSize(0)
+      .tickValues(xRbScale.domain().filter((d, i) => !(i % xScaleInterval)))
+      .orient('bottom');
 
-  const yAxis = d3.svg
-    .axis()
-    .scale(yRbScale)
-    .outerTickSize(0)
-    .tickValues(yRbScale.domain().filter((d, i) => !(i % yScaleInterval)))
-    .orient('left');
-
-  svg
-    .append('g')
-    .attr('class', 'x axis')
-    .attr('transform', `translate(${margin.left},${margin.top + hmHeight})`)
-    .call(xAxis)
-    .selectAll('text')
-    // .attr('x', -4)
-    // .attr('y', 10)
-    // .attr('dy', '0.3em')
-    .style('text-anchor', 'end')
-    // .style('opacity', 0)
-    .attr('class', 'x-label')
-    .attr('transform', 'rotate(-45)');
-
-  const elements = Array.from(document.getElementsByClassName('x-label'));
-  console.log('overlaps', elementsAreOverlapping(elements));
-  for (let i = 0; i < elements.length; i++) {
-    const el = elements[i].getBoundingClientRect();
-    console.log(elements[i]);
-    console.log(JSON.stringify(el));
+    svg
+      .append('g')
+      .attr('class', 'x axis')
+      .attr('transform', `translate(${margin.left},${margin.top + hmHeight})`)
+      .call(xAxis)
+      .selectAll('text')
+      .attr('x', -4)
+      .attr('y', 10)
+      .attr('dy', '0.3em')
+      .style('text-anchor', 'end')
+      .attr('class', 'x-label')
+      .attr('transform', 'rotate(-45)');
   }
 
   if (showY) {
+    const yAxis = d3.svg
+      .axis()
+      .scale(yRbScale)
+      .outerTickSize(0)
+      .tickValues(yRbScale.domain().filter((d, i) => !(i % yScaleInterval)))
+      .orient('left');
     svg
       .append('g')
       .attr('class', 'y axis')
@@ -366,7 +377,6 @@ function Heatmap(element, props) {
       const x = xScale(d.x);
       const y = yScale(d.y);
       pixs[x + y * xScale.domain().length] = c;
-      console.log(pixs);
       if (matrix[x] === undefined) {
         matrix[x] = {};
       }
@@ -389,7 +399,6 @@ function Heatmap(element, props) {
       image.data[p + 3] = alpha;
       p += 4;
     }
-    console.log(image);
     context.putImageData(image, 0, 0);
     imageObj.src = canvas.node().toDataURL();
   }
