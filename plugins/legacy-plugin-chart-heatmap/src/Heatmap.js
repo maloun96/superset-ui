@@ -25,6 +25,7 @@ import { getNumberFormatter, NumberFormats, getSequentialSchemeRegistry } from '
 
 import './vendor/d3tip.css';
 import './Heatmap.css';
+import { elementsAreOverlapping } from './utils';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -97,20 +98,34 @@ function Heatmap(element, props) {
     bottom: 35,
     left: 35,
   };
+  let longestXWidth = 1;
+  let longestYWidth = 1;
+  let showY = true;
+  let showX = true;
+  const pixelsPerCharX = 4.5; // approx, depends on font size
+  const pixelsPerCharY = 6; // approx, depends on font size
+
   const valueFormatter = getNumberFormatter(numberFormat);
 
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {
-    const pixelsPerCharX = 4.5; // approx, depends on font size
-    const pixelsPerCharY = 6; // approx, depends on font size
     let longestX = 1;
     let longestY = 1;
 
     records.forEach(datum => {
+      console.log(datum.y);
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      const w = context.measureText(datum.y).width;
+      const h = context.measureText(datum.y).height;
       longestX = Math.max(longestX, (datum.x && datum.x.toString().length) || 1);
       longestY = Math.max(longestY, (datum.y && datum.y.toString().length) || 1);
+
+      longestXWidth = Math.max(longestXWidth, Math.ceil(w));
+      longestYWidth = Math.max(longestYWidth, Math.ceil(h));
     });
 
+    // console.log({ hmWidth, hmHeight, longestX, longestY });
     if (leftMargin === 'auto') {
       margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
     } else {
@@ -163,8 +178,15 @@ function Heatmap(element, props) {
 
   adjustMargins();
 
-  const hmWidth = width - (margin.left + margin.right);
-  const hmHeight = height - (margin.bottom + margin.top);
+  let hmWidth = width - (margin.left + margin.right);
+  let hmHeight = height - (margin.bottom + margin.top);
+
+  if (hmWidth < 80) {
+    margin.left = Math.ceil(Math.max(35, pixelsPerCharY * 1));
+    hmWidth = width - (margin.left + margin.right);
+    showY = false;
+  }
+
   const fp = getNumberFormatter(NumberFormats.PERCENT);
 
   const xScale = ordScale('x', null, sortXAxis);
@@ -174,7 +196,6 @@ function Heatmap(element, props) {
   const X = 0;
   const Y = 1;
   const heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
-
   const minBound = yAxisBounds[0] || 0;
   const maxBound = yAxisBounds[1] || 1;
   const colorScale = getSequentialSchemeRegistry()
@@ -307,17 +328,29 @@ function Heatmap(element, props) {
     .attr('transform', `translate(${margin.left},${margin.top + hmHeight})`)
     .call(xAxis)
     .selectAll('text')
-    .attr('x', -4)
-    .attr('y', 10)
-    .attr('dy', '0.3em')
+    // .attr('x', -4)
+    // .attr('y', 10)
+    // .attr('dy', '0.3em')
     .style('text-anchor', 'end')
+    // .style('opacity', 0)
+    .attr('class', 'x-label')
     .attr('transform', 'rotate(-45)');
 
-  svg
-    .append('g')
-    .attr('class', 'y axis')
-    .attr('transform', `translate(${margin.left},${margin.top})`)
-    .call(yAxis);
+  const elements = Array.from(document.getElementsByClassName('x-label'));
+  console.log('overlaps', elementsAreOverlapping(elements));
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i].getBoundingClientRect();
+    console.log(elements[i]);
+    console.log(JSON.stringify(el));
+  }
+
+  if (showY) {
+    svg
+      .append('g')
+      .attr('class', 'y axis')
+      .attr('transform', `translate(${margin.left},${margin.top})`)
+      .call(yAxis);
+  }
 
   const context = canvas.node().getContext('2d');
   context.imageSmoothingEnabled = false;
@@ -325,6 +358,7 @@ function Heatmap(element, props) {
   // Compute the pixel colors; scaled by CSS.
   function createImageObj() {
     const imageObj = new Image();
+    console.log('heatmapDim', heatmapDim);
     const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
     const pixs = {};
     records.forEach(d => {
@@ -332,6 +366,7 @@ function Heatmap(element, props) {
       const x = xScale(d.x);
       const y = yScale(d.y);
       pixs[x + y * xScale.domain().length] = c;
+      console.log(pixs);
       if (matrix[x] === undefined) {
         matrix[x] = {};
       }
@@ -354,6 +389,7 @@ function Heatmap(element, props) {
       image.data[p + 3] = alpha;
       p += 4;
     }
+    console.log(image);
     context.putImageData(image, 0, 0);
     imageObj.src = canvas.node().toDataURL();
   }
