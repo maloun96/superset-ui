@@ -98,23 +98,15 @@ function Heatmap(element, props) {
     yAxisBounds,
   } = props;
 
-  const { extents } = data;
-  const records = data.records.map(r => {
-    if (r.x === 'start your own business') {
-      return { ...r, x: 'Example of long x label: Lorem Ipsum Dolor Sit test 12 123' };
-    }
+  const { extents, records } = data;
 
-    return r;
-  });
-  console.log({ extents, records });
   const margin = {
     top: 10,
     right: 10,
     bottom: 35,
     left: 35,
   };
-  let longestXWidth = 1;
-  let longestYWidth = 1;
+
   let showY = true;
   let showX = true;
   const pixelsPerCharX = 4.5; // approx, depends on font size
@@ -128,15 +120,8 @@ function Heatmap(element, props) {
     let longestY = 1;
 
     records.forEach(datum => {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      const w = context.measureText(datum.y).width;
-      const h = context.measureText(datum.y).height;
       longestX = Math.max(longestX, (datum.x && datum.x.toString().length) || 1);
       longestY = Math.max(longestY, (datum.y && datum.y.toString().length) || 1);
-
-      longestXWidth = Math.max(longestXWidth, Math.ceil(w));
-      longestYWidth = Math.max(longestYWidth, Math.ceil(h));
     });
 
     if (leftMargin === 'auto') {
@@ -194,12 +179,14 @@ function Heatmap(element, props) {
   let hmWidth = width - (margin.left + margin.right);
   let hmHeight = height - (margin.bottom + margin.top);
 
+  // Hide Y Labels
   if (hmWidth < DEFAULT_PROPERTIES.minChartWidth) {
     margin.left = leftMargin === 'auto' ? DEFAULT_PROPERTIES.marginLeft : leftMargin;
     hmWidth = width - (margin.left + margin.right);
     showY = false;
   }
 
+  // Hide X Labels
   if (hmHeight < DEFAULT_PROPERTIES.minChartHeight) {
     margin.bottom = bottomMargin === 'auto' ? DEFAULT_PROPERTIES.marginBottom : bottomMargin;
     hmHeight = height - (margin.bottom + margin.top);
@@ -369,7 +356,6 @@ function Heatmap(element, props) {
   // Compute the pixel colors; scaled by CSS.
   function createImageObj() {
     const imageObj = new Image();
-    console.log('heatmapDim', heatmapDim);
     const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
     const pixs = {};
     records.forEach(d => {
